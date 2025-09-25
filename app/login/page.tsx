@@ -7,50 +7,100 @@ import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
 import {Label} from "@/components/ui/label"
-import {Alert, AlertDescription} from "@/components/ui/alert"
 import {Eye, EyeOff, Film} from "lucide-react"
+import {toast} from "sonner"
 
 // Test credentials
 const TEST_CREDENTIALS = {
     customer: {
-        email: "customer@cinema.com",
-        password: "customer123",
+        email: "user@test.com",
+        password: "12345678",
         role: "customer",
     },
 }
+
+const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL
 
 export default function LoginPage() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [showPassword, setShowPassword] = useState(false)
-    const [error, setError] = useState("")
     const [isLoading, setIsLoading] = useState(false)
     const router = useRouter()
 
+    const validateLogin = (email: string, password: string) => {
+        if (!email.trim() || !password.trim()) {
+            return "Email and password cannot be blank"
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(email)) {
+            return "Email invalid format"
+        }
+
+        if (password.length < 8) {
+            return "Password must be at least 8 characters long"
+        }
+
+        return null
+    }
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
-        setError("")
-        setIsLoading(true)
 
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-
-        if (email === TEST_CREDENTIALS.customer.email && password === TEST_CREDENTIALS.customer.password) {
-            localStorage.setItem(
-                "auth",
-                JSON.stringify({
-                    isAuthenticated: true,
-                    user: {email, role: "customer", name: "John Doe"},
-                }),
-            )
-            router.push("/customer")
-        } else {
-            setError("Invalid email or password")
+        // validate input trước khi fetch
+        const errorMsg = validateLogin(email, password)
+        if (errorMsg) {
+            toast.error(errorMsg)
+            return
         }
-        setIsLoading(false)
+        console.log("Sending login body:", {email, password})
+
+
+        setIsLoading(true)
+        try {
+            const response = await fetch(BACKEND_BASE_URL + "/auth/log-in", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({email, password}),
+            })
+
+            const data = await response.json()
+
+            if (data.status === 200 && data.data.accessToken) {
+                const role = (data.data.roleName || "").toUpperCase()
+                console.log("API roleName:", data.data.roleName)
+                if (role !== "CUSTOMER") {
+                    toast.error("This login page is only for customers")
+                    return
+                }
+
+                localStorage.setItem("accessToken", data.data.accessToken)
+                localStorage.setItem("userId", String(data.data.userId))
+                localStorage.setItem("roleName", data.data.roleName)
+                localStorage.setItem("email", data.data.email)
+
+                toast.success(data.message)
+                router.push("/customer")
+            } else if (data) {
+                toast.error(data.message || "Access denied")
+            } else if (data.status === 404 || data.status === 401) {
+                toast.error("Invalid email or password")
+            }
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                console.error("Login error:", err.message)
+            } else {
+                console.error("Unexpected error:", err)
+            }
+            toast.error("Something went wrong. Please try again.")
+        } finally {
+            setIsLoading(false) // always off loading
+        }
     }
 
     const handleGoogleSignIn = () => {
-        alert("Đăng nhập bằng Google sẽ được tích hợp sau!")
+        window.location.href = BACKEND_BASE_URL + "/oauth2/authorization/google-user"
     }
 
     const handleForgotPassword = () => {
@@ -123,12 +173,6 @@ export default function LoginPage() {
                             </div>
                         </div>
 
-                        {error && (
-                            <Alert variant="destructive" className="text-sm">
-                                <AlertDescription>{error}</AlertDescription>
-                            </Alert>
-                        )}
-
                         <Button type="submit"
                                 className="w-full bg-primary hover:bg-primary/90 text-white py-2 rounded-lg transition-all"
                                 disabled={isLoading}>
@@ -182,9 +226,9 @@ export default function LoginPage() {
                             <div>
                                 <strong>Customer:</strong>
                                 <br/>
-                                Email: customer@cinema.com
+                                Email: user@test.com
                                 <br/>
-                                Password: customer123
+                                Password: 12345678
                             </div>
                         </div>
                     </div>
