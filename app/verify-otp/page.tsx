@@ -2,7 +2,13 @@
 
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+    CardDescription
+} from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
@@ -30,7 +36,7 @@ export default function VerifyOtpPage() {
             const response = await fetch(`${BACKEND_BASE_URL}/auth/verify-otp`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, code: otp }),
+                body: JSON.stringify({ email, otp }), // ✅ FIXED: dùng đúng key
             })
 
             const data = await response.json()
@@ -53,7 +59,7 @@ export default function VerifyOtpPage() {
             const response = await fetch(`${BACKEND_BASE_URL}/auth/resend-otp`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ email }), // ✅ FIXED: chỉ gửi email
             })
 
             const data = await response.json()
