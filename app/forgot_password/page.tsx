@@ -36,7 +36,7 @@ export default function VerifyMailPage() {
 
             if (response.status === 200) {
                 toast.success("Mã xác nhận đã được gửi tới email của bạn")
-                router.push("/verify-otp?email=" + encodeURIComponent(email))
+                router.push("/verify-otp-reset?email=" + encodeURIComponent(email))
             } else {
                 toast.error(data.message || "Gửi mã thất bại")
             }
