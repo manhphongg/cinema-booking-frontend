@@ -33,10 +33,10 @@ export default function VerifyOtpPage() {
 
         setIsLoading(true)
         try {
-            const response = await fetch(`${BACKEND_BASE_URL}/auth/verify-otp`, {
+            const response = await fetch(`${BACKEND_BASE_URL}/accounts/verify-otp-reset`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, otp }), // ✅ FIXED: dùng đúng key
+                body: JSON.stringify({ email, otpCode: otp }),
             })
 
             const data = await response.json()

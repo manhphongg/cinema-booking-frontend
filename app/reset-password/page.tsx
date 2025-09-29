@@ -35,11 +35,15 @@ export default function ResetPasswordPage() {
 
         setIsLoading(true)
         try {
-            const response = await fetch(`${BACKEND_BASE_URL}/auth/reset-password`, {
+            const response = await fetch(`${BACKEND_BASE_URL}/accounts/reset-password`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({
+                    email,               // lấy từ query ?email=...
+                    newPassword: password, // phải là newPassword (không phải password)
+                }),
             })
+
 
             const data = await response.json()
             if (response.status === 200) {
