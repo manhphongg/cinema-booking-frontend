@@ -19,7 +19,7 @@ const TEST_CREDENTIALS = {
     },
 }
 
-const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL
+const BACKEND_BASE_URL = "http://localhost:8885"
 
 export default function LoginPage() {
     const [email, setEmail] = useState("")
