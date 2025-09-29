@@ -5,7 +5,6 @@ const API = axios.create({
     withCredentials: true, // để tự gửi cookie refreshToken
 });
 
-// interceptor request: luôn gắn accessToken nếu có
 API.interceptors.request.use((config) => {
     const accessToken = localStorage.getItem("accessToken");
     if (accessToken) {
@@ -14,7 +13,6 @@ API.interceptors.request.use((config) => {
     return config;
 });
 
-// interceptor response: nếu accessToken hết hạn -> tự gọi refresh-token
 API.interceptors.response.use(
     (response) => response,
     async (error) => {
@@ -22,7 +20,7 @@ API.interceptors.response.use(
 
         console.log("Interceptor triggered, status:", error.response?.status);
 
-        // check cả 401 và 403
+
         if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
             originalRequest._retry = true;
             try {
