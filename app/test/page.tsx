@@ -7,8 +7,8 @@ export default function TestPage() {
     useEffect(() => {
         // gọi thử endpoint bảo vệ (cần accessToken)
         API.get("/user/lisst")
-            .then(res => console.log("✅ Profile:", res.data))
-            .catch(err => console.error("❌ Error:", err))
+            .then(res => console.log("Profile:", res.data))
+            .catch(err => console.error(" Error:", err))
     }, [])
 
     return <div>Test refresh token page</div>

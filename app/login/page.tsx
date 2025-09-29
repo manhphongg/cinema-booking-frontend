@@ -30,16 +30,16 @@ export default function LoginPage() {
 
     const validateLogin = (email: string, password: string) => {
         if (!email.trim() || !password.trim()) {
-            return "Email and password cannot be blank"
+            return "Vui lòng nhập email và mật khẩu"
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!emailRegex.test(email)) {
-            return "Email invalid format"
+            return "Email không đúng định dạng"
         }
 
         if (password.length < 8) {
-            return "Password must be at least 8 characters long"
+            return "Mật khẩu phải có ít nhất 8 ký tự"
         }
 
         return null
@@ -71,7 +71,7 @@ export default function LoginPage() {
                 const role = (data.data.roleName || "").toUpperCase()
                 console.log("API roleName:", data.data.roleName)
                 if (role !== "CUSTOMER") {
-                    toast.error("This login page is only for customers")
+                    toast.error("Trang đăng nhập này chỉ dành cho khách hàng")
                     return
                 }
 
@@ -83,9 +83,9 @@ export default function LoginPage() {
                 toast.success(data.message)
                 router.push("/customer")
             } else if (data) {
-                toast.error(data.message || "Access denied")
+                toast.error("Truy cập bị từ chối")
             } else if (data.status === 404 || data.status === 401) {
-                toast.error("Invalid email or password")
+                toast.error("Email hoặc mật khẩu không chính xác")
             }
         } catch (err: unknown) {
             if (err instanceof Error) {
@@ -93,7 +93,7 @@ export default function LoginPage() {
             } else {
                 console.error("Unexpected error:", err)
             }
-            toast.error("Something went wrong. Please try again.")
+            toast.error("Có lỗi xảy ra. Vui lòng thử lại sau")
         } finally {
             setIsLoading(false) // always off loading
         }
