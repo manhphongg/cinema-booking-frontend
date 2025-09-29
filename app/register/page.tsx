@@ -9,10 +9,12 @@ import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/compo
 import {Label} from "@/components/ui/label"
 import {Alert, AlertDescription} from "@/components/ui/alert"
 import {Eye, EyeOff, Film} from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
 import {toast} from "sonner"
 
-const BACKEND_BASE_URL = "http://localhost:8885"
+const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL
+console.log("API base:", BACKEND_BASE_URL)
+
 
 export default function RegisterPage() {
     const [email, setEmail] = useState("")
@@ -103,7 +105,7 @@ export default function RegisterPage() {
     }
 
     const handleGoogleSignIn = () => {
-        alert("Chức năng đăng nhập Google sẽ được tích hợp sau!")
+        window.location.href = BACKEND_BASE_URL + "/oauth2/authorization/google-user"
     }
     const handleVerifyOtpRedirect = () => {
         router.push("/verify-otp")
@@ -144,7 +146,8 @@ export default function RegisterPage() {
                         <div className="space-y-2">
                             <div className="flex items-center gap-4">
                                 <div className="flex-1">
-                                    <Label htmlFor="dateOfBirth" className="text-sm font-medium text-gray-700">Ngày sinh</Label>
+                                    <Label htmlFor="dateOfBirth" className="text-sm font-medium text-gray-700">Ngày
+                                        sinh</Label>
                                     <Input
                                         id="dateOfBirth"
                                         type="date"
@@ -155,10 +158,12 @@ export default function RegisterPage() {
                                     />
                                 </div>
                                 <div className="flex-1">
-                                    <Label htmlFor="gender" className="text-sm font-medium text-gray-700">Giới tính</Label>
+                                    <Label htmlFor="gender" className="text-sm font-medium text-gray-700">Giới
+                                        tính</Label>
                                     <Select onValueChange={setGender} required>
-                                        <SelectTrigger className="border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/50">
-                                            <SelectValue placeholder="Chọn giới tính" />
+                                        <SelectTrigger
+                                            className="border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/50">
+                                            <SelectValue placeholder="Chọn giới tính"/>
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="MALE">Nam</SelectItem>
@@ -206,7 +211,8 @@ export default function RegisterPage() {
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="confirm-password" className="text-sm font-medium text-gray-700">Xác nhận mật khẩu</Label>
+                            <Label htmlFor="confirm-password" className="text-sm font-medium text-gray-700">Xác nhận mật
+                                khẩu</Label>
                             <div className="relative">
                                 <Input
                                     id="confirm-password"

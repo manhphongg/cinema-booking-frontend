@@ -1,16 +1,16 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
-import { Film } from "lucide-react"
-import { toast } from "sonner"
+import {useState} from "react"
+import {useRouter, useSearchParams} from "next/navigation"
+import {Button} from "@/components/ui/button"
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
+import {Alert, AlertDescription} from "@/components/ui/alert"
+import {InputOTP, InputOTPGroup, InputOTPSlot} from "@/components/ui/input-otp"
+import {Film} from "lucide-react"
+import {toast} from "sonner"
 
-const BACKEND_BASE_URL = "http://localhost:8885"
+const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL
 
 export default function OTPVerifyPage() {
     const [otp, setOtp] = useState("")
@@ -42,7 +42,7 @@ export default function OTPVerifyPage() {
         try {
             const response = await fetch(
                 `${BACKEND_BASE_URL}/accounts/verify-otp?email=${encodeURIComponent(email)}&otp=${otp}`,
-                { method: "POST" }
+                {method: "POST"}
             )
 
             const data = await response.json()
@@ -70,7 +70,7 @@ export default function OTPVerifyPage() {
             // Tạm thời gọi lại verify-otp (theo yêu cầu)
             const response = await fetch(
                 `${BACKEND_BASE_URL}/accounts/verify-otp?email=${encodeURIComponent(email || "")}&otp=${otp || "000000"}`,
-                { method: "POST" }
+                {method: "POST"}
             )
 
             const data = await response.json()
@@ -95,7 +95,7 @@ export default function OTPVerifyPage() {
                 <CardHeader className="text-center">
                     <div className="flex justify-center mb-4">
                         <div className="bg-primary text-primary-foreground p-3 rounded-full">
-                            <Film className="h-8 w-8" />
+                            <Film className="h-8 w-8"/>
                         </div>
                     </div>
                     <CardTitle className="text-2xl font-bold text-gray-900">Xác minh OTP</CardTitle>
@@ -114,12 +114,12 @@ export default function OTPVerifyPage() {
                                 containerClassName="group flex items-center has-disabled:opacity-30"
                             >
                                 <InputOTPGroup>
-                                    <InputOTPSlot index={0} />
-                                    <InputOTPSlot index={1} />
-                                    <InputOTPSlot index={2} />
-                                    <InputOTPSlot index={3} />
-                                    <InputOTPSlot index={4} />
-                                    <InputOTPSlot index={5} />
+                                    <InputOTPSlot index={0}/>
+                                    <InputOTPSlot index={1}/>
+                                    <InputOTPSlot index={2}/>
+                                    <InputOTPSlot index={3}/>
+                                    <InputOTPSlot index={4}/>
+                                    <InputOTPSlot index={5}/>
                                 </InputOTPGroup>
                             </InputOTP>
 
