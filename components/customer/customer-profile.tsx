@@ -1,6 +1,6 @@
 "use client"
 
-import {useState} from "react"
+import {useEffect, useMemo, useState} from "react"
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card"
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
@@ -8,7 +8,15 @@ import {Label} from "@/components/ui/label"
 import {Badge} from "@/components/ui/badge"
 import {Separator} from "@/components/ui/separator"
 import {RadioGroup, RadioGroupItem} from "@/components/ui/radio-group"
-import {Edit, Save, Star, X} from "lucide-react"
+import {Edit, Loader2, Save, Star, X} from "lucide-react"
+import {changePassword, getMe, requestPasswordOtp, updateMe} from "@/src/api/user"
+
+const getStoredEmail = () => {
+    if (typeof window === "undefined") {
+        return null
+    }
+    return localStorage.getItem("email") || localStorage.getItem("userEmail")
+}
 
 const showToast = (message: string, type: "success" | "error" = "success") => {
     const toast = document.createElement("div")
@@ -20,22 +28,97 @@ const showToast = (message: string, type: "success" | "error" = "success") => {
     setTimeout(() => document.body.removeChild(toast), 3000)
 }
 
+const extractErrorMessage = (error: unknown) => {
+    if (typeof error === "object" && error) {
+        const maybeResponse = (error as any).response
+        const fallback = (error as any).message
+        const message = maybeResponse?.data?.message || maybeResponse?.data?.error || fallback
+        if (typeof message === "string" && message.trim().length > 0) {
+            return message
+        }
+    }
+    if (error instanceof Error && error.message) {
+        return error.message
+    }
+    return "Đã xảy ra lỗi"
+}
+
 export function CustomerProfile() {
     const [isEditing, setIsEditing] = useState(false)
+    const [loading, setLoading] = useState(false)
     const [formData, setFormData] = useState({
-        name: "John Doe",
+        name: "",
         gender: "male",
-        dateOfBirth: "1990-05-15",
-        email: "john.doe@email.com",
-        loyaltyPoints: 2450,
+        dateOfBirth: "",
+        email: "",
+        address: "",
+        phoneNumber: "",
+        loyaltyPoints: 0,
     })
-    const [passwordData, setPasswordData] = useState({
+    const [passwordForm, setPasswordForm] = useState({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
+        otp: "",
     })
+    const [passwordLoading, setPasswordLoading] = useState({ sendOtp: false, change: false })
+    const resolvedEmail = useMemo(() => {
+        const storedEmail = getStoredEmail()
+        // eslint-disable-next-line no-console
+        console.log("[CustomerProfile] resolvedEmail computed", { storedEmail, formEmail: formData.email })
+        return storedEmail || formData.email
+    }, [formData.email])
 
-    const handleSave = () => {
+    const formattedDob = useMemo(() => {
+        if (!formData.dateOfBirth) {
+            return "Chưa cập nhật"
+        }
+        const parsed = new Date(formData.dateOfBirth)
+        return Number.isNaN(parsed.getTime()) ? "Chưa cập nhật" : parsed.toLocaleDateString()
+    }, [formData.dateOfBirth])
+
+    useEffect(() => {
+        const stored = getStoredEmail()
+        const email = stored || formData.email
+        // eslint-disable-next-line no-console
+        console.log("[CustomerProfile] useEffect mount, stored email:", stored, "resolved:", email)
+        if (!email) {
+            // eslint-disable-next-line no-console
+            console.warn("[CustomerProfile] No email found. Ask user to login.")
+            return
+        }
+        setLoading(true)
+        getMe(email)
+            .then((data) => {
+                // eslint-disable-next-line no-console
+                console.log("[CustomerProfile] getMe data:", data)
+                const gender = localStorage.getItem("userGender") || data.gender || formData.gender || "male"
+                const dateOfBirth = localStorage.getItem("userDob") || data.dateOfBirth || formData.dateOfBirth || ""
+                setFormData((prev) => ({
+                    ...prev,
+                    name: data.name ?? prev.name ?? "",
+                    gender,
+                    dateOfBirth,
+                    email: data.email ?? email,
+                    address: data.address ?? prev.address ?? "",
+                    phoneNumber: data.phoneNumber ?? prev.phoneNumber ?? "",
+                    loyaltyPoints: data.loyaltyPoints ?? prev.loyaltyPoints ?? 0,
+                }))
+                if (typeof window !== "undefined" && (data.email || email)) {
+                    const resolved = data.email ?? email
+                    localStorage.setItem("email", resolved)
+                    localStorage.setItem("userEmail", resolved)
+                }
+            })
+            .catch((err) => {
+                // eslint-disable-next-line no-console
+                console.error("[CustomerProfile] getMe error:", err)
+                showToast("Failed to load profile", "error")
+            })
+            .finally(() => setLoading(false))
+    }, [])
+
+    const handleSave = async () => {
         if (!formData.name.trim()) {
             showToast("Name is required", "error")
             return
@@ -44,31 +127,102 @@ export function CustomerProfile() {
             showToast("Gender is required", "error")
             return
         }
-        setIsEditing(false)
-        showToast("Profile updated successfully!")
+        try {
+            setLoading(true)
+            const payload = {
+                name: formData.name,
+                gender: formData.gender,
+                dateOfBirth: formData.dateOfBirth,
+                address: formData.address || undefined,
+            }
+            const updated = await updateMe(resolvedEmail, payload)
+            setFormData((prev) => ({
+                ...prev,
+                ...updated,
+                address: updated?.address ?? prev.address,
+            }))
+            // persist client-only fields
+            localStorage.setItem("userGender", formData.gender)
+            localStorage.setItem("userDob", formData.dateOfBirth)
+            setIsEditing(false)
+            showToast("Profile updated successfully!")
+        } catch (e) {
+            // eslint-disable-next-line no-console
+            console.error("[CustomerProfile] update error:", e)
+            showToast("Failed to update profile", "error")
+        } finally {
+            setLoading(false)
+        }
     }
 
-    const handlePasswordChange = () => {
-        if (!passwordData.currentPassword) {
-            showToast("Current password is required", "error")
+    const handleSendPasswordOtp = async () => {
+        if (!resolvedEmail) {
+            showToast("Không tìm thấy email người dùng", "error")
             return
         }
-        if (!passwordData.newPassword) {
-            showToast("New password is required", "error")
-            return
+        try {
+            setPasswordLoading((prev) => ({ ...prev, sendOtp: true }))
+            await requestPasswordOtp(resolvedEmail.trim())
+            showToast("Đã gửi OTP tới email của bạn")
+        } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error("[CustomerProfile] requestPasswordOtp error:", error)
+            showToast(extractErrorMessage(error) || "Gửi OTP thất bại", "error")
+        } finally {
+            setPasswordLoading((prev) => ({ ...prev, sendOtp: false }))
         }
-        if (passwordData.newPassword.length < 6) {
-            showToast("New password must be at least 6 characters", "error")
-            return
-        }
-        if (passwordData.newPassword !== passwordData.confirmPassword) {
-            showToast("New passwords don't match!", "error")
-            return
-        }
-        showToast("Password changed successfully!")
-        setPasswordData({currentPassword: "", newPassword: "", confirmPassword: ""})
     }
 
+    const handleChangePassword = async () => {
+        if (!resolvedEmail) {
+            showToast("Không tìm thấy email người dùng", "error")
+            return
+        }
+        const trimmed = {
+            currentPassword: passwordForm.currentPassword.trim(),
+            newPassword: passwordForm.newPassword.trim(),
+            confirmPassword: passwordForm.confirmPassword.trim(),
+            otp: passwordForm.otp.trim(),
+        }
+        if (!trimmed.currentPassword) {
+            showToast("Vui lòng nhập mật khẩu hiện tại", "error")
+            return
+        }
+        if (!trimmed.newPassword) {
+            showToast("Vui lòng nhập mật khẩu mới", "error")
+            return
+        }
+        if (trimmed.newPassword.length < 6) {
+            showToast("Mật khẩu mới phải tối thiểu 6 ký tự", "error")
+            return
+        }
+        if (trimmed.newPassword !== trimmed.confirmPassword) {
+            showToast("Mật khẩu xác nhận không khớp", "error")
+            return
+        }
+        if (!trimmed.otp) {
+            showToast("Vui lòng nhập OTP", "error")
+            return
+        }
+        try {
+            setPasswordLoading((prev) => ({ ...prev, change: true }))
+            await changePassword({
+                email: resolvedEmail.trim(),
+                oldPassword: trimmed.currentPassword,
+                newPassword: trimmed.newPassword,
+                otp: trimmed.otp,
+                confirmPassword: trimmed.confirmPassword,
+            })
+            showToast("Đổi mật khẩu thành công")
+            setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "", otp: "" })
+        } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error("[CustomerProfile] changePassword error:", error)
+            showToast(extractErrorMessage(error) || "Đổi mật khẩu thất bại", "error")
+        } finally {
+            setPasswordLoading((prev) => ({ ...prev, change: false }))
+        }
+    }
 
     return (
         <div id="view-profile" className="space-y-6">
@@ -81,7 +235,7 @@ export function CustomerProfile() {
                     </Button>
                 ) : (
                     <div className="flex gap-2">
-                        <Button id="btnSaveProfile" onClick={handleSave} className="flex items-center gap-2">
+                        <Button id="btnSaveProfile" disabled={loading} onClick={handleSave} className="flex items-center gap-2">
                             <Save className="h-4 w-4"/>
                             Save
                         </Button>
@@ -148,14 +302,28 @@ export function CustomerProfile() {
                         <div className="space-y-2">
                             <Label htmlFor="dob">Date of Birth</Label>
                             <p id="dob" className="text-gray-600">
-                                {new Date(formData.dateOfBirth).toLocaleDateString()}
+                                {formattedDob}
                             </p>
                         </div>
 
                         <div className="space-y-2">
                             <Label htmlFor="email">Email Address</Label>
                             <p id="email" className="text-gray-600">
-                                {formData.email}
+                                {resolvedEmail}
+                            </p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="phone">Phone Number</Label>
+                            <p id="phone" className="text-gray-600">
+                                {formData.phoneNumber || "Chưa cập nhật"}
+                            </p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="address">Address</Label>
+                            <p id="address" className="text-gray-600">
+                                {formData.address || "Chưa cập nhật"}
                             </p>
                         </div>
                     </div>
@@ -180,53 +348,84 @@ export function CustomerProfile() {
                 </CardContent>
             </Card>
 
-            {/* Change Password */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Change Password</CardTitle>
+                    <CardTitle>Đổi mật khẩu</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <p className="text-sm text-gray-500">
+                        Cần nhập mật khẩu hiện tại, OTP xác nhận và mật khẩu mới.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="currentPassword">Current Password</Label>
+                            <Label htmlFor="currentPassword">Mật khẩu hiện tại</Label>
                             <Input
                                 id="currentPassword"
                                 type="password"
-                                value={passwordData.currentPassword}
-                                onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+                                value={passwordForm.currentPassword}
+                                onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                                placeholder="Nhập mật khẩu hiện tại"
+                                autoComplete="current-password"
                             />
                         </div>
-
                         <div className="space-y-2">
-                            <Label htmlFor="newPassword">New Password</Label>
+                            <Label htmlFor="passwordOtp">OTP</Label>
+                            <Input
+                                id="passwordOtp"
+                                value={passwordForm.otp}
+                                onChange={(e) => setPasswordForm({ ...passwordForm, otp: e.target.value })}
+                                placeholder="Nhập OTP"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="newPassword">Mật khẩu mới</Label>
                             <Input
                                 id="newPassword"
                                 type="password"
-                                value={passwordData.newPassword}
-                                onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+                                value={passwordForm.newPassword}
+                                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                                placeholder="Mật khẩu mới"
+                                autoComplete="new-password"
                             />
                         </div>
-
                         <div className="space-y-2">
-                            <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                            <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
                             <Input
                                 id="confirmPassword"
                                 type="password"
-                                value={passwordData.confirmPassword}
-                                onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                                value={passwordForm.confirmPassword}
+                                onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                                placeholder="Xác nhận mật khẩu"
+                                autoComplete="new-password"
                             />
                         </div>
                     </div>
-
-                    <div className="flex gap-2">
-                        <Button id="btnSavePassword" onClick={handlePasswordChange}>
-                            Save Password
+                    <div className="flex flex-wrap gap-2">
+                        <Button id="btnSendPasswordOtp" variant="outline" disabled={passwordLoading.sendOtp} onClick={handleSendPasswordOtp}>
+                            {passwordLoading.sendOtp ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Đang gửi OTP...
+                                </>
+                            ) : (
+                                "Gửi OTP"
+                            )}
+                        </Button>
+                        <Button id="btnChangePassword" disabled={passwordLoading.change} onClick={handleChangePassword}>
+                            {passwordLoading.change ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Đang đổi mật khẩu...
+                                </>
+                            ) : (
+                                "Đổi mật khẩu"
+                            )}
                         </Button>
                         <Button
                             variant="outline"
-                            onClick={() => setPasswordData({currentPassword: "", newPassword: "", confirmPassword: ""})}
+                            onClick={() => setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "", otp: "" })}
                         >
-                            Cancel
+                            Xóa thông tin
                         </Button>
                     </div>
                 </CardContent>

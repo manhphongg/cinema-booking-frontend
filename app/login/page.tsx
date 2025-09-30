@@ -116,7 +116,7 @@ export default function LoginPage() {
     }
 
     const handleForgotPassword = () => {
-        alert("Chức năng khôi phục mật khẩu sẽ được tích hợp sau!")
+        router.push("/forgot-password")
     }
 
     const handleRegister = () => {
@@ -190,6 +190,16 @@ export default function LoginPage() {
                                         {showPassword ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
                                     </Button>
                                 </div>
+                            </div>
+                            <div className="flex justify-end">
+                                <Button
+                                    type="button"
+                                    variant="link"
+                                    className="px-0 text-sm"
+                                    onClick={handleForgotPassword}
+                                >
+                                    Quên mật khẩu?
+                                </Button>
                             </div>
                             <Button type="submit" className="w-full" disabled={isLoading}>
                                 {isLoading ? "Signing in..." : "Sign In"}
