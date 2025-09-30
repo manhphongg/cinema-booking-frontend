@@ -114,7 +114,7 @@ export default function LoginPage() {
     }
 
     const handleForgotPassword = () => {
-        router.push("/forgot_password")
+        router.push("/forgot-password")
     }
 
     const handleRegister = () => {
@@ -189,6 +189,7 @@ export default function LoginPage() {
                                     </Button>
                                 </div>
                             </div>
+
                             <div className="text-right">
                                 <Button
                                     type="button"
