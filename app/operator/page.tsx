@@ -9,6 +9,7 @@ import {ShowtimeManagement} from "@/components/operator/showtime-management"
 import {RoomManagement} from "@/components/operator/room-management"
 import {SeatManagement} from "@/components/operator/seat-management"
 import {NewsManagement} from "@/components/operator/news-management"
+import {ProfileManagement} from "@/components/operator/profile-management"
 
 export default function AdminPage() {
     const [activeSection, setActiveSection] = useState("dashboard")
@@ -64,6 +65,8 @@ export default function AdminPage() {
                 return <RoomManagement onSelectRoom={setSelectedRoom}/>
             case "news":
                 return <NewsManagement/>
+            case "profile":
+                return <ProfileManagement/>
             default:
                 return <Dashboard/>
         }

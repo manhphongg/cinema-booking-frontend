@@ -410,11 +410,21 @@ Top Gun: Maverick,Action,English,130,2024-11-20,An action drama,Joseph Kosinski,
                 Thêm nhiều phim
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card text-card-foreground border-border max-w-2xl">
-              <DialogHeader>
+            <DialogContent className="bg-card text-card-foreground border-border max-w-2xl max-h-[80vh] w-[90vw] sm:w-full flex flex-col operator-dialog-scroll">
+              <DialogHeader className="flex-shrink-0">
                 <DialogTitle className="text-foreground text-2xl">Thêm nhiều phim cùng lúc</DialogTitle>
               </DialogHeader>
-              <div className="space-y-6 py-4">
+              <div className="space-y-6 py-4 overflow-y-auto flex-1 operator-scrollbar operator-scroll-fade">
+                {/* Scroll indicator */}
+                <div className="text-center text-xs text-muted-foreground mb-2 opacity-60">
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-1 h-1 rounded-full bg-muted-foreground/40"></div>
+                    <div className="w-1 h-1 rounded-full bg-muted-foreground/40"></div>
+                    <div className="w-1 h-1 rounded-full bg-muted-foreground/40"></div>
+                    <span className="ml-2">Cuộn để xem thêm</span>
+                  </div>
+                </div>
+                
                 <div className="bg-muted/50 p-4 rounded-lg space-y-3">
                   <h3 className="font-semibold text-foreground">Hướng dẫn:</h3>
                   <div className="space-y-4">
