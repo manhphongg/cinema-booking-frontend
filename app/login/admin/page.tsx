@@ -74,7 +74,7 @@ export default function LoginPage() {
     }
 
     const handleForgotPassword = () => {
-        toast.info("Chức năng khôi phục mật khẩu sẽ được tích hợp sau!")
+        router.push("/forgot_password")
     }
 
     const fillTestAccount = (role: "admin" | "staff" | "manager") => {
