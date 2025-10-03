@@ -19,26 +19,39 @@ export default function VerifyMailPage() {
     const handleSendVerifyCode = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        if (!email.trim()) {
+        const trimmed = email.trim()
+        if (!trimmed) {
             toast.error("Vui lòng nhập email")
             return
         }
 
         setIsLoading(true)
         try {
-            const response = await fetch(`${BACKEND_BASE_URL}/accounts/forgot-password`, {
+            const res = await fetch(`${BACKEND_BASE_URL}/accounts/forgot-password`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ email: trimmed }),
             })
 
-            const data = await response.json()
+            // BE dùng ResponseData<T> { status, message, data }
+            // Ta cố gắng parse, nếu lỗi vẫn fallback theo res.ok
+            let payload: any = null
+            try {
+                payload = await res.json()
+            } catch {
+                payload = null
+            }
 
-            if (response.status === 200) {
+            if (res.ok) {
+                // Lưu email tạm để bước Verify dùng gửi kèm body
+                if (typeof window !== "undefined") {
+                    sessionStorage.setItem("fp_email", trimmed)
+                }
                 toast.success("Mã xác nhận đã được gửi tới email của bạn")
-                router.push("/verify-otp-reset?email=" + encodeURIComponent(email))
+                router.push("/verify-otp-reset")
             } else {
-                toast.error(data.message || "Gửi mã thất bại")
+                const msg = payload?.message || "Gửi mã thất bại"
+                toast.error(msg)
             }
         } catch (err) {
             toast.error("Có lỗi xảy ra, vui lòng thử lại")
