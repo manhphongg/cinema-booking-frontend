@@ -1,14 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-    CardDescription
-} from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
@@ -18,14 +12,38 @@ const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL
 
 export default function VerifyOtpPage() {
     const [otp, setOtp] = useState("")
+    const [email, setEmail] = useState("")
     const [isLoading, setIsLoading] = useState(false)
+
     const router = useRouter()
     const searchParams = useSearchParams()
-    const email = searchParams.get("email")
+
+    // Lấy email: ưu tiên sessionStorage, fallback query (?email=)
+    useEffect(() => {
+        let em = ""
+        if (typeof window !== "undefined") {
+            em = sessionStorage.getItem("fp_email") || ""
+        }
+        if (!em) {
+            const fromQuery = searchParams.get("email") ?? ""
+            if (fromQuery) em = fromQuery
+        }
+        if (!em) {
+            toast.error("Thiếu email. Vui lòng nhập lại email để nhận OTP.")
+            router.replace("/forgot_password")
+            return
+        }
+        setEmail(em)
+    }, [router, searchParams])
 
     const handleVerify = async (e: React.FormEvent) => {
         e.preventDefault()
 
+        if (!email.trim()) {
+            toast.error("Thiếu email. Vui lòng quay lại bước trước.")
+            router.replace("/forgot_password")
+            return
+        }
         if (!/^\d{6}$/.test(otp)) {
             toast.error("Vui lòng nhập đủ 6 chữ số")
             return
@@ -33,20 +51,41 @@ export default function VerifyOtpPage() {
 
         setIsLoading(true)
         try {
-            const response = await fetch(`${BACKEND_BASE_URL}/accounts/verify-otp-reset`, {
+            const res = await fetch(`${BACKEND_BASE_URL}/accounts/verify-otp-reset`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, otpCode: otp }),
             })
 
-            const data = await response.json()
-            if (response.status === 200) {
-                toast.success("Xác thực thành công, vui lòng đặt lại mật khẩu")
-                router.push(`/reset-password?email=${encodeURIComponent(email || "")}`)
-            } else {
-                toast.error(data.message || "Mã xác nhận không hợp lệ")
+            // ResponseData<T>: { status, message, data }
+            let data: any = null
+            try {
+                data = await res.json()
+            } catch {
+                data = null
             }
-        } catch {
+
+            if (!res.ok) {
+                const msg = data?.message || "Mã OTP không hợp lệ hoặc đã hết hạn"
+                toast.error(msg)
+                return
+            }
+
+            const resetToken =
+                data?.data?.resetToken || data?.resetToken || data?.token
+
+            if (!resetToken) {
+                toast.error("Thiếu reset token từ máy chủ. Vui lòng thử lại.")
+                return
+            }
+
+            // Lưu token và sang trang reset (không đính token lên URL)
+            if (typeof window !== "undefined") {
+                sessionStorage.setItem("reset_token", String(resetToken))
+            }
+            toast.success("Xác thực thành công, vui lòng đặt lại mật khẩu")
+            router.push("/reset-password")
+        } catch (err) {
             toast.error("Có lỗi xảy ra, vui lòng thử lại")
         } finally {
             setIsLoading(false)
@@ -54,19 +93,27 @@ export default function VerifyOtpPage() {
     }
 
     const handleResend = async () => {
-        if (!email) return
+        if (!email.trim()) {
+            toast.error("Thiếu email. Vui lòng quay lại bước trước.")
+            router.replace("/forgot_password")
+            return
+        }
         try {
-            const response = await fetch(`${BACKEND_BASE_URL}/auth/resend-otp`, {
+            const res = await fetch(`${BACKEND_BASE_URL}/accounts/forgot-password`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email }), // ✅ FIXED: chỉ gửi email
+                body: JSON.stringify({ email }),
             })
-
-            const data = await response.json()
-            if (response.status === 200) {
+            let data: any = null
+            try {
+                data = await res.json()
+            } catch {
+                data = null
+            }
+            if (res.ok) {
                 toast.success("Mã xác nhận mới đã được gửi")
             } else {
-                toast.error(data.message || "Không gửi lại được mã")
+                toast.error(data?.message || "Không gửi lại được mã")
             }
         } catch {
             toast.error("Có lỗi khi gửi lại mã")
@@ -114,7 +161,7 @@ export default function VerifyOtpPage() {
                                 type="button"
                                 variant="outline"
                                 className="flex-1"
-                                onClick={() => router.push("/verify-mail")}
+                                onClick={() => router.push("/forgot_password")}
                             >
                                 Thay đổi email
                             </Button>
