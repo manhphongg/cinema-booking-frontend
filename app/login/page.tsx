@@ -61,14 +61,14 @@ export default function LoginPage() {
             const data = await response.json()
 
             if (data.status === 200 && data.data.accessToken) {
-                const role = (data.data.roleName || "").toUpperCase()
-                if (role !== "CUSTOMER") {
+                const roles: string[] = data.data.roleName
+                if (!roles.includes("CUSTOMER")) {
                     toast.error("Trang đăng nhập này chỉ dành cho khách hàng")
                     return
                 }
                 localStorage.setItem("accessToken", data.data.accessToken)
                 localStorage.setItem("userId", String(data.data.userId))
-                localStorage.setItem("roleName", data.data.roleName)
+                localStorage.setItem("roleName", JSON.stringify(data.data.roleName))
                 localStorage.setItem("email", data.data.email)
 
                 toast.success(data.message)
